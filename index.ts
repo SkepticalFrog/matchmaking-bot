@@ -1,8 +1,9 @@
-import { Client, Collection, Events, GatewayIntentBits, SlashCommandBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, Client, Collection, Events, GatewayIntentBits, ModalSubmitInteraction, SlashCommandBuilder } from 'discord.js';
 import dotenv from 'dotenv';
 import fs from 'node:fs';
 import path from 'node:path';
 import { Command } from './types';
+import * as actions from './modals';
 
 dotenv.config();
 const token = process.env.DISCORD_TOKEN;
@@ -34,8 +35,16 @@ for (const file of commandFiles) {
 }
 
 client.on(Events.InteractionCreate, async interaction => {
-  if (!interaction.isChatInputCommand()) return;
 
+
+  if (interaction.isChatInputCommand())
+    await handleChatInputCommand(interaction);
+  
+  if (interaction.isModalSubmit())
+    await handleModalSubmit(interaction);
+  });
+
+const handleChatInputCommand = async (interaction: ChatInputCommandInteraction) => {
   const command = interaction.client.commands.get(interaction.commandName);
 
   if (!command) {
@@ -59,7 +68,15 @@ client.on(Events.InteractionCreate, async interaction => {
       });
     }
   }
-});
+}
+
+const handleModalSubmit = async (interaction: ModalSubmitInteraction) => {
+  console.log('interaction.customId', interaction.customId)
+  console.log('actions', actions)
+
+  const action: Function = actions[interaction.customId];
+  await action(interaction);
+}
 
 client.once(Events.ClientReady, c => {
   console.log(`Ready! Logged in as ${c.user.tag}`);
